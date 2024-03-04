@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::GameLoopSchedules;
+
 const MOVEMENT_ROTATION_SPEED:f32 = 5.0;
 
 
@@ -17,7 +19,7 @@ impl Plugin for MovementPlugin {
                 update_velocity, 
                 update_position,
                 update_facing,
-            ));
+            ).in_set(GameLoopSchedules::EntityUpdates));
     }
 }
 

@@ -1,18 +1,25 @@
 use bevy::prelude::*;
+// use bevy::log::LogPlugin;
+// use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 mod horde_survivors;
 use horde_survivors::prelude::*;
 
 fn main() {
-    App::new()
-    .add_plugins(DefaultPlugins)
-    .add_plugins(LightingPlugin)
-    .add_plugins(CameraPlugin)
-    .add_plugins(AssetLoaderPlugin)
-    .add_plugins(MovementPlugin)
-    .add_plugins(PlayerPlugin)
-    .add_systems(Startup, setup_test_scene)
-    .run();
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins)
+    // app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>())
+    //     .add_plugins(WorldInspectorPlugin::new())
+        .add_plugins(SchedulesPlugin)
+        .add_plugins(LightingPlugin)
+        .add_plugins(CameraPlugin)
+        .add_plugins(AssetLoaderPlugin)
+        .add_plugins(MovementPlugin)
+        .add_plugins(PlayerPlugin)
+        .add_systems(Startup, setup_test_scene);
+    
+    // bevy_mod_debugdump::print_schedule_graph(&mut app, Update);
+    app.run();
 }
 
 

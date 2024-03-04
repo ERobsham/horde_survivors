@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::PlayerComponent;
+use crate::{GameLoopSchedules, PlayerComponent};
 
 const CAMERA_DISTANCE: f32 = 20.0;
 const CAMERA_FOLLOW_SPEED: f32 = 1.5;
@@ -34,7 +34,7 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_camera)
-            .add_systems(Update, follow_player);
+            .add_systems(Update, follow_player.after_ignore_deferred(GameLoopSchedules::EntityUpdates));
     }
 }
 

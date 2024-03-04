@@ -1,6 +1,7 @@
 
 pub mod prelude;
 
+mod schedule;
 mod lighting;
 mod asset_loader;
 mod camera;
