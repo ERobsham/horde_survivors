@@ -34,7 +34,11 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_camera)
-            .add_systems(Update, follow_player.after_ignore_deferred(GameLoopSchedules::EntityUpdates));
+            .add_systems(Update, 
+                follow_player
+                .after_ignore_deferred(GameLoopSchedules::EntityUpdates)
+            )
+            ;
     }
 }
 
@@ -61,8 +65,8 @@ fn follow_player(
     player: Query<&Transform, (With<PlayerComponent>, Without<MainCamera>)>,
     mut camera: Query<&mut Transform, (With<MainCamera>, Without<PlayerComponent>)>,
 ) {
-    let player = player.single();
-    let mut camera = camera.single_mut();
+    let player = if player.get_single().is_ok() { player.single() } else { return; };
+    let mut camera = if camera.get_single_mut().is_ok() { camera.single_mut() } else { return; };
 
     let p_loc = Vec2{ x:player.translation.x, y:player.translation.y };
     let c_loc = Vec2{ x:camera.translation.x, y:camera.translation.y };

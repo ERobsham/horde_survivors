@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use bevy::utils::Duration;
 
-use crate::{AnimationPlayerMapping, AnimationType, GameLoopSchedules, MeshAssets, MovableObjectBundle, Velocity};
+use crate::{
+    AnimationPlayerMapping, AnimationType, GameLoopSchedules, GameState, MeshAssets, MovableObjectBundle, Velocity
+};
 
 #[derive(Component, Debug, Default)]
 pub struct PlayerComponent;
@@ -32,26 +34,28 @@ struct PlayerBundle {
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, 
-                spawn_player.run_if(run_once())
-                    .in_set(GameLoopSchedules::Spawn),
+        app.add_systems(OnExit(GameState::Initialize), 
+                spawn_player
+                .in_set(GameLoopSchedules::Spawn),
             )
             .add_systems(Update, 
                 handle_move_ctl
-                    .in_set(GameLoopSchedules::ProcessInput),
+                .in_set(GameLoopSchedules::ProcessInput),
             )
             .add_systems(Update, 
                 start_idle_animation
-                    .in_set(GameLoopSchedules::EntityUpdates),
+                .in_set(GameLoopSchedules::EntityUpdates),
             );
     }
 }
 
-pub(crate) fn spawn_player(mut commands: Commands, assets: Res<MeshAssets>) {
+pub(crate) fn spawn_player(
+    mut commands: Commands, 
+    assets: Res<MeshAssets>,
+) {
     info!("spawning player");
     commands.spawn(PlayerBundle::default())
         .with_children(|parent|{
-            info!("spawning player model");
             let t = Transform::default()
                 .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
                 .looking_at(-Vec3::Y, Vec3::Z);
@@ -67,24 +71,15 @@ pub(crate) fn spawn_player(mut commands: Commands, assets: Res<MeshAssets>) {
 fn start_idle_animation(
     assets: Res<MeshAssets>,
     animator_map: Res<AnimationPlayerMapping>,
-    q_players: Query<Entity, With<PlayerComponent>>,
-    mut q_animators: Query<&mut AnimationPlayer>,
-    mut idle_kicked: Local<bool>,
+    q_players: Query<Entity, (With<PlayerComponent>, Added<PlayerComponent>)>,
+    mut q_animators: Query<&mut AnimationPlayer, Added<AnimationPlayer>>,
 ) {
-    if *idle_kicked { return; }
-
     for player_entity in q_players.iter() {
-
         let animator_entity = if let Some(entity) = animator_map.0.get(&player_entity) { 
             *entity 
-        } else {
-            warn!("no animator mapped for this player entity {:?} yet!", player_entity);
-            continue; 
-        };
+        } else { continue; };
         
         if let Ok(mut animator) = q_animators.get_mut(animator_entity) {
-            *idle_kicked = true;
-
             animator.play(assets.player_animations.0[AnimationType::Idle as usize].clone_weak())
                 .repeat();
         } else {

@@ -10,12 +10,15 @@ fn main() {
     app.add_plugins(DefaultPlugins)
     // app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>())
     //     .add_plugins(WorldInspectorPlugin::new())
-        .add_plugins(SchedulesPlugin)
-        .add_plugins(LightingPlugin)
-        .add_plugins(CameraPlugin)
-        .add_plugins(AssetLoaderPlugin)
-        .add_plugins(MovementPlugin)
-        .add_plugins(PlayerPlugin)
+        .add_plugins((
+            StatePlugin,
+            SchedulesPlugin,
+            LightingPlugin,
+            CameraPlugin,
+            AssetLoaderPlugin,
+            MovementPlugin,
+            PlayerPlugin,
+        ))
         .add_systems(Startup, setup_test_scene);
     
     // bevy_mod_debugdump::print_schedule_graph(&mut app, Update);
