@@ -2,13 +2,11 @@ use bevy::prelude::*;
 use bevy::utils::Duration;
 
 use crate::{
-    AnimationPlayerMapping, AnimationType, GameLoopSchedules, GameState, MeshAssets, MovableObjectBundle, Velocity
+    AnimationPlayerMapping, AnimationType, AssetKey, GameLoopSchedules, GameState, MeshAssets, MovableObjectBundle, TriggerAnimation, Velocity, ASSET_KEY_PLAYER
 };
 
 #[derive(Component, Debug, Default)]
 pub struct PlayerComponent;
-#[derive(Component, Debug, Default)]
-pub struct PlayerMesh;
 
 #[derive(Component, Debug)]
 struct PlayerModifiers {
@@ -28,6 +26,7 @@ impl Default for PlayerModifiers {
 struct PlayerBundle {
     movement: MovableObjectBundle,
     modifiers: PlayerModifiers,
+    asset_key: AssetKey,
     marker: PlayerComponent,
 }
 
@@ -42,10 +41,7 @@ impl Plugin for PlayerPlugin {
                 handle_move_ctl
                 .in_set(GameLoopSchedules::ProcessInput),
             )
-            .add_systems(Update, 
-                start_idle_animation
-                .in_set(GameLoopSchedules::EntityUpdates),
-            );
+            ;
     }
 }
 
@@ -54,46 +50,29 @@ pub(crate) fn spawn_player(
     assets: Res<MeshAssets>,
 ) {
     info!("spawning player");
-    commands.spawn(PlayerBundle::default())
+    commands.spawn(PlayerBundle{
+        asset_key: AssetKey(ASSET_KEY_PLAYER.into()),
+        ..default()
+    })
         .with_children(|parent|{
             let t = Transform::default()
                 .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
                 .looking_at(-Vec3::Y, Vec3::Z);
+
+            let player_assets = assets.0.get(ASSET_KEY_PLAYER).expect("hardcoded asset");
             
             parent.spawn(SceneBundle { 
-                scene: assets.player.clone_weak(), 
+                scene: player_assets.mesh.clone_weak(), 
                 transform: t,
                 ..default()
             });
         });
 }
 
-fn start_idle_animation(
-    assets: Res<MeshAssets>,
-    animator_map: Res<AnimationPlayerMapping>,
-    q_players: Query<Entity, (With<PlayerComponent>, Added<PlayerComponent>)>,
-    mut q_animators: Query<&mut AnimationPlayer, Added<AnimationPlayer>>,
-) {
-    for player_entity in q_players.iter() {
-        let animator_entity = if let Some(entity) = animator_map.0.get(&player_entity) { 
-            *entity 
-        } else { continue; };
-        
-        if let Ok(mut animator) = q_animators.get_mut(animator_entity) {
-            animator.play(assets.player_animations.0[AnimationType::Idle as usize].clone_weak())
-                .repeat();
-        } else {
-            warn!("no AnimationPlayer for this player entity!");
-        }
-    }
-}
-
 fn handle_move_ctl(
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut events: EventWriter<TriggerAnimation>,
     mut query: Query<(&mut Velocity, &PlayerModifiers, Entity), With<PlayerComponent>>,
-    assets: Res<MeshAssets>,
-    animator_map: Res<AnimationPlayerMapping>,
-    mut q_animators: Query<&mut AnimationPlayer>,
 ) {
     let (mut velocity, modifiers, player_entity) = if let Ok(res) = query.get_single_mut() {
         res
@@ -116,29 +95,18 @@ fn handle_move_ctl(
         move_dir -= Vec3::Y;
     }
 
+    if move_dir.length_squared() > 0.05 {
+        move_dir = move_dir.normalize();
+    }
+
     move_dir *= modifiers.move_speed * modifiers.move_speed_mod;
     velocity.0 = move_dir;
 
 
-    let animator_entity = if let Some(res) = animator_map.0.get(&player_entity) {
-        *res
-    } else { return; };
-    let mut animator = if let Ok(res) = q_animators.get_mut(animator_entity) {
-        res
-    } else { return; };
-
     let length = move_dir.length_squared();
     if length < 0.05 {
-        animator.play_with_transition(
-            assets.player_animations.0[AnimationType::Idle as usize].clone_weak(),
-                Duration::from_millis(500),
-            )
-            .repeat();
+        events.send(TriggerAnimation(player_entity, AnimationType::Idle));
     } else {
-        animator.play_with_transition(
-            assets.player_animations.0[AnimationType::Run as usize].clone_weak(),
-                Duration::from_millis(250),
-            )
-            .repeat();
+        events.send(TriggerAnimation(player_entity, AnimationType::Run));
     }
 }

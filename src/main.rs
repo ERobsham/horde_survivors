@@ -13,11 +13,17 @@ fn main() {
         .add_plugins((
             StatePlugin,
             SchedulesPlugin,
+
             LightingPlugin,
             CameraPlugin,
+            
             AssetLoaderPlugin,
+            CharacterAnimatorPlugin,
+            
             MovementPlugin,
+            
             PlayerPlugin,
+            EnemyPlugin,
         ))
         .add_systems(Startup, setup_test_scene);
     

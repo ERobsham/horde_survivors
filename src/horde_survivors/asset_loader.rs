@@ -1,4 +1,4 @@
-use bevy::{asset::{LoadState, UntypedAssetId}, prelude::*, utils::HashMap};
+use bevy::{asset::{LoadState, UntypedAssetId}, prelude::*, utils::hashbrown::HashMap};
 
 use crate::{
     GameLoopSchedules, 
@@ -7,25 +7,35 @@ use crate::{
 
 use super::ui::loading;
 
-#[derive(Resource, Debug, Default)]
-pub struct MeshAssets {
-    pub player: Handle<Scene>,
-    pub player_animations: Animations,
-    pub enemy: Handle<Scene>,
-    pub projectile: Handle<Scene>,
-    pub destructible: Handle<Scene>,
+
+pub const ASSET_KEY_PLAYER: &str = "player";
+pub const ASSET_KEY_ENEMY: &str = "enemy";
+pub const ASSET_KEY_DESTRUCTIBLE: &str = "destructible";
+pub const ASSET_KEY_PROJECTILE: &str = "projectile";
+
+
+pub struct CharacterAssets {
+    pub mesh: Handle<Scene>,
+    pub animations: Option<Animations>,
 }
 
+#[derive(Resource, Default)]
+pub struct MeshAssets(pub HashMap<String, CharacterAssets>);
+
+#[derive(Component, Default, Clone)]
+pub struct AssetKey(pub String);
+
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub enum AnimationType {
     Idle = 0,
-    // Walk,
+    Walk,
     Run,
-    // TakeHit,
-    // Die,
+    TakeHit,
+    Die,
 }
 
-#[derive(Resource, Debug, Default)]
-pub struct Animations(pub Vec<Handle<AnimationClip>>);
+#[derive(Resource, Default)]
+pub struct Animations(pub HashMap<AnimationType, Handle<AnimationClip>>);
 
 
 #[derive(Resource, Debug, Default)]
@@ -81,28 +91,58 @@ fn load_meshes(
     mut loading_assets: ResMut<LoadingAssets>,
     asset_server: Res<AssetServer>,
 ) {
-    *assets = MeshAssets {
-        player_animations: Animations(vec![
-            asset_server.load("Anne.glb#Animation3"), // idle 4 (idx 3)
-            asset_server.load("Anne.glb#Animation11"), // walk 12
-            asset_server.load("Anne.glb#Animation9"), // run 10
-            asset_server.load("Anne.glb#Animation2"), // take hit 3
-            asset_server.load("Anne.glb#Animation0"), // die 1
-        ]),
-        player: asset_server.load("Anne.glb#Scene0"),
+    //  Player
+    let mut player_animations = HashMap::new();
+    player_animations.insert(AnimationType::Idle, asset_server.load("Anne.glb#Animation3"));    // idle 4 (idx 3)
+    player_animations.insert(AnimationType::Walk, asset_server.load("Anne.glb#Animation11"));   // walk 12
+    player_animations.insert(AnimationType::Run, asset_server.load("Anne.glb#Animation9"));     // run 10
+    player_animations.insert(AnimationType::TakeHit, asset_server.load("Anne.glb#Animation2")); // take hit 3
+    player_animations.insert(AnimationType::Die, asset_server.load("Anne.glb#Animation0"));     // die 1
+    player_animations.iter().for_each(|(_, a)| { 
+        loading_assets.0.insert(a.clone_weak().untyped().id(), LoadState::NotLoaded); 
+    });
 
-        enemy: asset_server.load("Skeleton.glb#Scene0"),
-        projectile: asset_server.load("Dagger.glb#Scene0"),
-        destructible: asset_server.load("Torch.glb#Scene0"),
+    let player_assets = CharacterAssets{
+        mesh: asset_server.load("Anne.glb#Scene0"),
+        animations: Some(Animations(player_animations)),
     };
-
-    loading_assets.0.insert(assets.player.clone_weak().untyped().id(), LoadState::NotLoaded);
-    assets.player_animations.0.iter()
-        .for_each(|a| { loading_assets.0.insert(a.clone_weak().untyped().id(), LoadState::NotLoaded); } );
+    loading_assets.0.insert(player_assets.mesh.clone_weak().untyped().id(), LoadState::NotLoaded);
     
-    loading_assets.0.insert(assets.enemy.clone_weak().untyped().id(), LoadState::NotLoaded);
-    loading_assets.0.insert(assets.projectile.clone_weak().untyped().id(), LoadState::NotLoaded);
-    loading_assets.0.insert(assets.destructible.clone_weak().untyped().id(), LoadState::NotLoaded);
+
+    //  Skeleton
+    let mut enemy_animations = HashMap::new();
+    enemy_animations.insert(AnimationType::Idle, asset_server.load("Skeleton.glb#Animation3"));    // idle 4 (idx 3)
+    enemy_animations.insert(AnimationType::Walk, asset_server.load("Skeleton.glb#Animation12"));   // walk 13
+    enemy_animations.insert(AnimationType::Run, asset_server.load("Skeleton.glb#Animation10"));    // run 11
+    enemy_animations.insert(AnimationType::TakeHit, asset_server.load("Skeleton.glb#Animation2")); // take hit 3
+    enemy_animations.insert(AnimationType::Die, asset_server.load("Skeleton.glb#Animation0"));     // die 1
+    enemy_animations.iter().for_each(|(_, a)| { 
+        loading_assets.0.insert(a.clone_weak().untyped().id(), LoadState::NotLoaded); 
+    });
+    let enemy_assets = CharacterAssets{
+        mesh: asset_server.load("Skeleton.glb#Scene0"),
+        animations: Some(Animations(enemy_animations)),
+    };
+    loading_assets.0.insert(enemy_assets.mesh.clone_weak().untyped().id(), LoadState::NotLoaded);
+    
+    //  Throwing Dagger
+    let projectile_assets = CharacterAssets{
+        mesh:asset_server.load("Dagger.glb#Scene0"),
+        animations: None,
+    };
+    loading_assets.0.insert(projectile_assets.mesh.clone_weak().untyped().id(), LoadState::NotLoaded);
+
+    let destructible_assets = CharacterAssets{
+        mesh:asset_server.load("Torch.glb#Scene0"),
+        animations: None,
+    };
+    loading_assets.0.insert(destructible_assets.mesh.clone_weak().untyped().id(), LoadState::NotLoaded);
+    
+    
+    assets.0.insert(ASSET_KEY_PLAYER.into(), player_assets);
+    assets.0.insert(ASSET_KEY_ENEMY.into(), enemy_assets);
+    assets.0.insert(ASSET_KEY_PROJECTILE.into(), projectile_assets);
+    assets.0.insert(ASSET_KEY_DESTRUCTIBLE.into(), destructible_assets);
 }
 
 fn load_progress(
