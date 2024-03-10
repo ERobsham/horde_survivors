@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-use super::style::*;
-use crate::{GameState, LoadingAssets};
+use crate::GameState;
+use super::{style::*, types::LoadingUpdate};
 
 #[derive(Component, Debug, Default)]
 struct LoadingMenu;
@@ -90,18 +90,15 @@ fn setup_loading_ui(
 
 fn update_loading_ui(
     // mut commands: Commands,
-    loading: Res<LoadingAssets>,
-    mut q_bar: Query<(Entity, &mut Style), With<LoadingBar>>,
+    mut events: EventReader<LoadingUpdate>,
+    mut q_bar: Query<&mut Style, With<LoadingBar>>,
 ) {
-    if let Ok((_bar_id, mut bar), ) = q_bar.get_single_mut() {
-        let total = loading.0.len() as f32;
-        let loaded = loading.num_loaded() as f32;
+    for event in events.read() {
+        let (loaded, total) = (event.0 as f32, event.1 as f32);
         let width = (loaded / total) * 100.;
 
-        bar.min_width = Val::Percent(width);
-
-        if loading.num_failed() > 0 {
-            // TODO: add error text to the bar.
+        if let Ok(mut bar) = q_bar.get_single_mut() {
+            bar.min_width = Val::Percent(width);
         }
     }
 }

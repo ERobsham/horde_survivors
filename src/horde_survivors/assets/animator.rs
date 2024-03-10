@@ -1,30 +1,58 @@
-use bevy::{prelude::*, utils::hashbrown::HashMap};
-use bevy::utils::Duration;
+use bevy::{prelude::*,  utils::Duration};
 
-use crate::{AnimationPlayerMapping, AnimationType, AssetKey, GameLoopSchedules, MeshAssets};
+use crate::GameLoopSchedules;
+use super::types::*;
 
 
-#[derive(Event, Debug)]
-pub struct TriggerAnimation(pub Entity, pub AnimationType);
-
-#[derive(Resource, Default)]
-struct EntityAssetMapping(pub HashMap<Entity, AssetKey>);
-
-pub struct CharacterAnimatorPlugin;
-impl Plugin for CharacterAnimatorPlugin {
+pub struct MeshAnimatorPlugin;
+impl Plugin for MeshAnimatorPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(EntityAssetMapping::default())
+        app
+            // Resources
+            .insert_resource(AnimationPlayerMapping::default())
+
+            // Events
             .add_event::<TriggerAnimation>()
+            
+            // Systems
+            .add_systems(Update, 
+                associate_animation_players_to_root_entities
+                .in_set(GameLoopSchedules::PostSpawn))
+
             .add_systems(Update, start_idle_animation
                 .in_set(GameLoopSchedules::EntityUpdates))
             .add_systems(Update, trigger_animation
                 .in_set(GameLoopSchedules::EntityUpdates))
-            ;
+        ;
+    }
+}
+
+fn associate_animation_players_to_root_entities(
+    mut mapping: ResMut<AnimationPlayerMapping>,
+    players:Query<Entity, Added<AnimationPlayer>>,
+    parents:Query<&Parent>,
+) {
+    for entity in players.iter() {
+        let root_entity = get_root(entity, &parents);
+        mapping.0.insert(root_entity, entity);
+
+        info!("entity {:?} with animation player added --> mapped to root entity {:?}", entity, root_entity);
+    }
+}
+
+fn get_root(entity: Entity, q_parents: &Query<&Parent>) -> Entity {
+    let mut cur_entity = entity;
+    loop {
+        if let Ok(parent) = q_parents.get(cur_entity) {
+            cur_entity = parent.get();
+        } else {
+            break cur_entity
+        }
     }
 }
 
 fn start_idle_animation(
-    assets: Res<MeshAssets>,
+    assets: Res<MeshAssetMap>,
     mut asset_map: ResMut<EntityAssetMapping>,
     animator_map: Res<AnimationPlayerMapping>,
     q_entities: Query<(Entity, &AssetKey)>,
@@ -47,7 +75,7 @@ fn start_idle_animation(
         asset_map.0.insert(entity, asset_key.clone());
 
         if let Ok(mut animator) = q_animators.get_mut(animator_entity) {
-            animator.play(animations.0.get(&AnimationType::Idle).expect("idle animation must be set").clone_weak())
+            animator.play(animations.0.get(&AnimationType::Idle).expect("idle animation type must be set").clone_weak())
                 .repeat();
         } else {
             warn!("no AnimationPlayer for this entity!");
@@ -57,7 +85,7 @@ fn start_idle_animation(
 
 fn trigger_animation(
     mut events: EventReader<TriggerAnimation>,
-    assets: Res<MeshAssets>,
+    assets: Res<MeshAssetMap>,
     asset_map: Res<EntityAssetMapping>,
     animator_map: Res<AnimationPlayerMapping>,
     mut q_animators: Query<&mut AnimationPlayer>,
@@ -79,7 +107,7 @@ fn trigger_animation(
 
         if let Ok(mut animator) = q_animators.get_mut(animator_entity) {
             animator.play_with_transition(
-                animations.0.get(&event.1).expect("all animation must be set").clone_weak(),
+                animations.0.get(&event.1).expect("all animation types must be set").clone_weak(),
                 Duration::from_millis(250),
                 )
                 .repeat();

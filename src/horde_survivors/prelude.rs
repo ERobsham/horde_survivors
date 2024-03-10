@@ -2,8 +2,7 @@
 pub use crate::horde_survivors::{
     state::*,
     schedule::*,
-    asset_loader::*,
-    animator::*,
+    assets::plugin::*,
     lighting::*,
     camera::*,
     bundles::*,

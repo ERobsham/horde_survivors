@@ -16,9 +16,8 @@ fn main() {
 
             LightingPlugin,
             CameraPlugin,
-            
-            AssetLoaderPlugin,
-            CharacterAnimatorPlugin,
+
+            AssetHandlerPlugin,
             
             MovementPlugin,
             

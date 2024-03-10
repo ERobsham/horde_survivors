@@ -1,12 +1,8 @@
 use bevy::prelude::*;
-use bevy::utils::Duration;
 
 use crate::{
-    AnimationPlayerMapping, 
-    AnimationType, 
     GameLoopSchedules, 
     GameState, 
-    MeshAssets, 
     MovableObjectBundle, 
     Velocity
 };
@@ -20,10 +16,6 @@ impl Plugin for EnemyPlugin {
                 .in_set(GameLoopSchedules::Spawn),
             )
             .add_systems(Update, 
-                start_idle_animation
-                .in_set(GameLoopSchedules::EntityUpdates),
-            )
-            .add_systems(Update, 
                 follow_player
                 .in_set(GameLoopSchedules::EntityUpdates),
             )
@@ -33,7 +25,5 @@ impl Plugin for EnemyPlugin {
 
 
 fn spawn_enemy_wave() {}
-
-fn start_idle_animation() {}
 
 fn follow_player() {}

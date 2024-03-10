@@ -4,9 +4,10 @@ pub mod prelude;
 mod schedule;
 mod state;
 mod lighting;
-mod asset_loader;
-mod animator;
 mod camera;
+
+mod assets;
+mod ui;
 
 mod bundles;
 mod movement;
@@ -14,4 +15,7 @@ mod movement;
 mod player;
 mod enemy;
 
-mod ui;
+
+pub(super) use self::{
+    assets::*,
+};

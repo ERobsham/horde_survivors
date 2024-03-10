@@ -1,9 +1,12 @@
 use bevy::prelude::*;
-use bevy::utils::Duration;
 
 use crate::{
-    AnimationPlayerMapping, AnimationType, AssetKey, GameLoopSchedules, GameState, MeshAssets, MovableObjectBundle, TriggerAnimation, Velocity, ASSET_KEY_PLAYER
+    GameLoopSchedules, 
+    GameState,
+    Velocity
 };
+use super::assets::types::*;
+use super::bundles::*;
 
 #[derive(Component, Debug, Default)]
 pub struct PlayerComponent;
@@ -47,26 +50,20 @@ impl Plugin for PlayerPlugin {
 
 pub(crate) fn spawn_player(
     mut commands: Commands, 
-    assets: Res<MeshAssets>,
+    mut events: EventWriter<SpawnMesh>,
 ) {
     info!("spawning player");
-    commands.spawn(PlayerBundle{
-        asset_key: AssetKey(ASSET_KEY_PLAYER.into()),
+    let asset_key = AssetKey(ASSET_KEY_PLAYER.into());
+    let player_entity = commands.spawn(PlayerBundle{
+        asset_key: asset_key.clone(),
         ..default()
-    })
-        .with_children(|parent|{
-            let t = Transform::default()
-                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
-                .looking_at(-Vec3::Y, Vec3::Z);
+    }).id();
 
-            let player_assets = assets.0.get(ASSET_KEY_PLAYER).expect("hardcoded asset");
-            
-            parent.spawn(SceneBundle { 
-                scene: player_assets.mesh.clone_weak(), 
-                transform: t,
-                ..default()
-            });
-        });
+    let t = Transform::default()
+        .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
+        .looking_at(-Vec3::Y, Vec3::Z);
+
+    events.send(SpawnMesh(player_entity, asset_key, t));
 }
 
 fn handle_move_ctl(
