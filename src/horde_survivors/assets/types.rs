@@ -61,12 +61,6 @@ pub(super) struct Animations(pub HashMap<AnimationType, Handle<AnimationClip>>);
 // =================================
 
 
-/// when an `Entity` with an `AssetKey` and has a child `AnimationPlayer` added,
-/// this resource is updated to track which `Entity` is the `AnimationPlayer` for a given root level `Entity`.
-#[derive(Resource, Default)]
-pub(super) struct AnimationPlayerMapping(pub HashMap<Entity, Entity>);
-
-
 /// When a `SpawnMesh` event is handled, it updates this Resource to associates an `Entity` with
 /// the `AssetKey` needed to lookup its mesh (and animation) assets.
 #[derive(Resource, Default)]
