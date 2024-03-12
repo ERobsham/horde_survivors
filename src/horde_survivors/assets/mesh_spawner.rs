@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::GameLoopSchedules;
+use crate::{GameLoopSchedules, GameState};
 use super::types::*;
 
 pub struct MeshSpawnerPlugin;
@@ -16,6 +16,7 @@ impl Plugin for MeshSpawnerPlugin {
             //systems
             .add_systems(Update, 
                 spawn_mesh
+                .run_if(in_state(GameState::Playing))
                 .in_set(GameLoopSchedules::Spawn)
         );
     }

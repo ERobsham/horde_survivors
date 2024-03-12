@@ -18,8 +18,9 @@ pub const ASSET_KEY_PROJECTILE: &str = "projectile";
 pub struct AssetKey(pub String);
 
 
-#[derive(PartialEq, Eq, Hash, Debug)]
+#[derive(PartialEq, Eq, Hash, Debug, Default, Clone, Copy)]
 pub enum AnimationType {
+    #[default]
     Idle = 0,
     Walk,
     Run,
