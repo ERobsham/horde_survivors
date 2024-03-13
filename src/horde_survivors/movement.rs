@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::GameLoopSchedules;
+use crate::{GameLoopSchedules, GameState};
 
 const MOVEMENT_ROTATION_SPEED:f32 = 5.0;
 
@@ -14,12 +14,17 @@ pub struct Acceleration(pub Vec3);
 pub struct MovementPlugin;
 impl Plugin for MovementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, 
-            (
-                update_velocity, 
-                update_position,
-                update_facing,
-            ).in_set(GameLoopSchedules::EntityUpdates));
+        app
+            .add_systems(Update, 
+                (
+                    update_velocity, 
+                    update_position,
+                    update_facing,
+                )
+                .run_if(in_state(GameState::Playing))
+                .in_set(GameLoopSchedules::EntityUpdates)
+            )
+        ;
     }
 }
 

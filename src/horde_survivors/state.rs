@@ -23,6 +23,11 @@ impl Plugin for StatePlugin {
                 .run_if(in_state(GameState::Playing))
                 .before(GameLoopSchedules::ProcessInput)
             )
+            .add_systems(Update, 
+                process_pause_events
+                .run_if(in_state(GameState::PauseMenu))
+                .before(GameLoopSchedules::ProcessInput)
+            )
             ;
     }
 }
@@ -36,11 +41,13 @@ fn process_pause_events(
         GameState::Playing => {
             if keyboard_input.just_pressed(KeyCode::Escape) {
                 next_state.set(GameState::PauseMenu);
+                info!("set 'pause menu' game state");
             }
         },
         GameState::PauseMenu => {
             if keyboard_input.just_pressed(KeyCode::Escape) {
                 next_state.set(GameState::Playing);
+                info!("set 'playing' game state");
             }
         },
         _ => (),
